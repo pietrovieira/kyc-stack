@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
+import 'hmac_service.dart';
 
 /// FaceTecService - integra o Device SDK (Flutter) com o kyc-backend (Rails proxy)
 /// https://dev.facetec.com/getting-started
@@ -24,7 +25,9 @@ class FacetecService {
   /// Busca config pública para inicializar o Device SDK
   /// O Device SDK precisa de deviceKeyIdentifier + publicFaceScanEncryptionKey
   Future<FacetecConfig> fetchConfig() async {
-    final resp = await _client.get(Uri.parse(AppConfig.facetecConfigEndpoint));
+    final uri = Uri.parse(AppConfig.facetecConfigEndpoint);
+    final headers = HmacService.signedHeaders(method: 'GET', path: uri.path, body: '');
+    final resp = await _client.get(uri, headers: headers);
     if (resp.statusCode != 200) {
       throw Exception('Falha ao buscar FaceTec config: ${resp.statusCode} ${resp.body}');
     }
@@ -35,7 +38,9 @@ class FacetecService {
   /// Healthcheck - valida Step 3 do Getting Started (Server SDK rodando)
   Future<bool> isServerRunning() async {
     try {
-      final resp = await _client.get(Uri.parse(AppConfig.facetecStatusEndpoint));
+      final uri = Uri.parse(AppConfig.facetecStatusEndpoint);
+      final headers = HmacService.signedHeaders(method: 'GET', path: uri.path, body: '');
+      final resp = await _client.get(uri, headers: headers);
       if (resp.statusCode != 200) return false;
       final json = jsonDecode(resp.body) as Map<String, dynamic>;
       return json['success'] == true && json['running'] == true;
@@ -57,10 +62,13 @@ class FacetecService {
       'sessionType': sessionType,
     };
 
+    final uri = Uri.parse(AppConfig.facetecProcessEndpoint);
+    final bodyStr = jsonEncode(body);
+    final hmacHeaders = HmacService.signedHeaders(method: 'POST', path: uri.path, body: bodyStr);
     final resp = await _client.post(
-      Uri.parse(AppConfig.facetecProcessEndpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
+      uri,
+      headers: {...hmacHeaders, 'Content-Type': 'application/json'},
+      body: bodyStr,
     );
 
     final json = jsonDecode(resp.body) as Map<String, dynamic>;
