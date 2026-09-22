@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'theme/obsidian_theme.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/profile_step_screen.dart';
-import 'screens/kyc_step_screen.dart';
+import 'screens/document_step_screen.dart';
+import 'screens/waiting_screen.dart';
 import 'services/customer_service.dart';
 
 void main() {
@@ -40,7 +41,7 @@ class _AppNavigatorState extends State<AppNavigator> {
 
   @override
   Widget build(BuildContext context) {
-    // Fluxo somente por navegação: Onboarding -> Perfil -> KYC (sem tabs)
+    // Fluxo 3 steps: 1 Cadastro -> 2 Documentos -> 3 Aguardando (sem tabs, sem Facetec no app)
     return OnboardingScreen(
       onStart: () async {
         final cpf = await Navigator.push<String>(
@@ -49,16 +50,34 @@ class _AppNavigatorState extends State<AppNavigator> {
             builder: (_) => ProfileStepScreen(
               customerService: _customerService,
               onProfileCreated: (cpf, data) {
-                // Fecha o Profile e retorna o CPF para o Onboarding
                 Navigator.pop(context, cpf);
               },
             ),
           ),
         );
-        if (cpf != null && mounted) {
+        if (cpf == null || !mounted) return;
+        // Etapa 2: Enviar documentos
+        final docsSent = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DocumentStepScreen(
+              cpf: cpf,
+              customerService: _customerService,
+              onDocumentsSent: () => Navigator.pop(context, true),
+            ),
+          ),
+        );
+        if (docsSent == true && mounted) {
+          // Etapa 3: Aguardando backoffice
           await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => KycStepScreen(cpf: cpf, customerService: _customerService)),
+            MaterialPageRoute(builder: (_) => WaitingScreen(cpf: cpf, customerService: _customerService)),
+          );
+        } else if (docsSent == null && mounted) {
+          // Se voltou sem enviar, ainda vai para aguardando para mostrar status profile_completed
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => WaitingScreen(cpf: cpf, customerService: _customerService)),
           );
         }
       },
