@@ -1,4 +1,9 @@
-# Banco Obsidian — KYC Stack
+<p align="center">
+  <img src="kyc-app/assets/icon/app_icon_1024.png" width="96" height="96" alt="Banco Obsidian" />
+</p>
+
+<h1 align="center">BANCO OBSIDIAN</h1>
+<p align="center"><em>KYC Stack — abertura de conta bancária (simulação)</em></p>
 
 > **Tema:** Roxo `#7c4dff` + Preto `#0a0a0a` • **Nome fake:** Banco Obsidian
 
