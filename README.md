@@ -320,9 +320,16 @@ Fluxo 3 steps (sem tabs): **1 Cadastro completo** (`ProfileStepScreen`) → **2 
 ## Credenciais
 
 - **Admin Backoffice:** `admin@obsidian.com` / `Obsidian123!` (via `ADMIN_SEED_EMAIL/PASSWORD`)
-- **HMAC:** `obsidian_app` / `obsidian_hmac_secret_2026_change_me_32bytes!` (trocar em prod)
+- **HMAC (dev):** `obsidian_app` / `obsidian_hmac_secret_2026_change_me_32bytes!` (`kyc-go/.env`, `AppConfig` default)
+- **HMAC (prod):** `obsidian_app` / `70358b8445e26c0845cdf866a84ee51800d14706019e2fe5a6a9fdea4e9781f5` (`kyc-go/.env.production` e `flutter build apk --dart-define=HMAC_SECRET=...`)
 - **JWT:** `obsidian_jwt_secret_2026_change_me_64bytes_hex!_dev_only` (trocar em prod)
 
 ---
+
+## Changelog v1.0.1+2 (2026-09-22)
+
+- **fix(hmac):** corrige `X-Signature inválida` na Etapa 1 — `kyc-go/.env.production` agora usa `70358b8445e26c0845cdf866a84ee51800d14706019e2fe5a6a9fdea4e9781f5` alinhado ao APK prod (`README` build). Antes o APK usava `70358b...` mas o servidor ainda tinha `obsidian_hmac_...`, causando 401 em `POST /api/v1/customers` e `GET /api/v1/cep/*`.
+- **fix(cep):** `kyc-go/internal/handlers/cep.go:27` `flexBool` aceita `{"erro":"true"}` string do ViaCEP (casos CEP inexistente) evitando 502 e retornando 404 correto.
+- **chore:** bump `kyc-app/pubspec.yaml:19` `1.0.0+1` → `1.0.1+2`, APKs split-per-abi (arm64 18.6MB, armeabi 16.1MB, x86_64 20.1MB) com `BACKEND_URL=https://obsidian-api.bookinglab.digital`.
 
 Built with Go 1.27 + Gin, Next.js 16, Flutter 3.47, Postgres 16, Redis 7, Docker.
