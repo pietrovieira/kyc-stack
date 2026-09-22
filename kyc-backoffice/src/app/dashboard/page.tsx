@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Link from "next/link"
 import { formatCPF, formatDateBR, statusFromNumber, statusLabel } from "@/lib/utils"
 import { CustomerDetailModal } from "@/components/customer-detail-modal"
+import { ClearAllButton } from "@/components/clear-all-button"
 import type { Customer } from "@/lib/types"
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://kyc-go:8080"
@@ -98,35 +99,40 @@ export default async function DashboardPage({
 
         <Card className="bg-[#1a1a1a] border-[#2a2a2a]">
           <CardHeader>
-            <form className="flex flex-col sm:flex-row gap-3" action="/dashboard" method="get">
-              <Input
-                name="q"
-                placeholder="Buscar por CPF, nome, email..."
-                defaultValue={params.q}
-                className="flex-1 bg-[#0f0f0f] border-[#333]"
-              />
-              <select
-                name="status"
-                defaultValue={params.status || ""}
-                className="h-10 rounded-md border border-[#333] bg-[#0f0f0f] px-3 text-sm"
-              >
-                <option value="">Todos status</option>
-                <option value="profile_completed">Perfil OK</option>
-                <option value="kyc_pending">KYC Pendente</option>
-                <option value="kyc_approved">Aprovado</option>
-                <option value="kyc_rejected">Rejeitado</option>
-                <option value="account_active">Conta Ativa</option>
-              </select>
-              <Button type="submit" className="bg-[#7c4dff] hover:bg-[#6a3de8]">
-                Buscar
-              </Button>
-              <Link
-                href="/dashboard"
-                className="inline-flex h-10 items-center justify-center rounded-md border border-[#333] px-4 text-sm hover:bg-white/10"
-              >
-                Limpar
-              </Link>
-            </form>
+            <div className="flex flex-col gap-3">
+              <form className="flex flex-col sm:flex-row gap-3" action="/dashboard" method="get">
+                <Input
+                  name="q"
+                  placeholder="Buscar por CPF, nome, email..."
+                  defaultValue={params.q}
+                  className="flex-1 bg-[#0f0f0f] border-[#333]"
+                />
+                <select
+                  name="status"
+                  defaultValue={params.status || ""}
+                  className="h-10 rounded-md border border-[#333] bg-[#0f0f0f] px-3 text-sm"
+                >
+                  <option value="">Todos status</option>
+                  <option value="profile_completed">Perfil OK</option>
+                  <option value="kyc_pending">KYC Pendente</option>
+                  <option value="kyc_approved">Aprovado</option>
+                  <option value="kyc_rejected">Rejeitado</option>
+                  <option value="account_active">Conta Ativa</option>
+                </select>
+                <Button type="submit" className="bg-[#7c4dff] hover:bg-[#6a3de8]">
+                  Buscar
+                </Button>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-[#333] px-4 text-sm hover:bg-white/10"
+                >
+                  Limpar filtros
+                </Link>
+              </form>
+              <div className="flex justify-end">
+                <ClearAllButton />
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             <Table>

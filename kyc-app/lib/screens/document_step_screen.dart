@@ -119,8 +119,8 @@ class _DocumentStepScreenState extends State<DocumentStepScreen> {
               Row(children: [
                 IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
                 const SizedBox(width: 8),
-                const Text('Etapa 2 • Enviar documentos', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                const Spacer(),
+                const Expanded(child: Text('Etapa 2 • Enviar documentos', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 8),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: ObsidianTheme.purple.withOpacity(0.2), borderRadius: BorderRadius.circular(20)), child: const Text('2/3', style: TextStyle(color: ObsidianTheme.purpleLight, fontSize: 12))),
               ]),
               const SizedBox(height: 8),
@@ -138,8 +138,8 @@ class _DocumentStepScreenState extends State<DocumentStepScreen> {
                 child: Row(children: [
                   const Icon(Icons.badge, color: ObsidianTheme.purple, size: 18),
                   const SizedBox(width: 8),
-                  Text('CPF: ${widget.cpf}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontFamily: 'monospace')),
-                  const Spacer(),
+                  Expanded(child: Text('CPF: ${widget.cpf}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontFamily: 'monospace'), overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 8),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)), child: const Text('Documentos', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white70))),
                 ]),
               ),

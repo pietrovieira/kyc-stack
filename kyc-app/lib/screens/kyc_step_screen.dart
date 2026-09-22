@@ -175,22 +175,24 @@ class _KycStepScreenState extends State<KycStepScreen> {
       body: Container(
         decoration: const BoxDecoration(gradient: ObsidianTheme.gradient),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Row(children: [
                 IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
                 const SizedBox(width: 8),
-                const Text('Cadastro • Aguardando', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                  child: Row(children: [
-                    Icon(_statusIcon(status), size: 14, color: color),
-                    const SizedBox(width: 6),
-                    Text(_statusLabel(status), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700)),
-                  ]),
+                const Expanded(child: Text('Cadastro • Aguardando', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(_statusIcon(status), size: 14, color: color),
+                      const SizedBox(width: 6),
+                      Flexible(child: Text(_statusLabel(status), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+                    ]),
+                  ),
                 ),
               ]),
               const SizedBox(height: 20),
@@ -266,7 +268,7 @@ class _KycStepScreenState extends State<KycStepScreen> {
                   ],
                 ]),
               ),
-              const Spacer(),
+              const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),

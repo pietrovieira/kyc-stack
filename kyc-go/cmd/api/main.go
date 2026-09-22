@@ -111,10 +111,11 @@ func main() {
 		protected.Use(AuthMiddleware(cfg.JWTSecret, db))
 		{
 			protected.GET("/me", adminH.Me)
-			protected.GET("/customers", adminH.ListCustomers)
+				protected.GET("/customers", adminH.ListCustomers)
 			protected.GET("/customers/:id", adminH.GetCustomer)
 			protected.POST("/customers/:id/approve", adminH.Approve)
 			protected.POST("/customers/:id/reject", adminH.Reject)
+			protected.DELETE("/customers", adminH.ClearCustomers)
 		}
 	}
 	// Também expõe admin via /admin/* para compatibilidade Next.js proxy

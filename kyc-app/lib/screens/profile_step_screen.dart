@@ -150,8 +150,8 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
                 Row(children: [
                   IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
                   const SizedBox(width: 8),
-                  const Text('Etapa 1 • Perfil e Endereço', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                  const Spacer(),
+                  const Expanded(child: Text('Etapa 1 • Perfil e Endereço', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis)),
+                  const SizedBox(width: 8),
                   Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: ObsidianTheme.purple.withOpacity(0.2), borderRadius: BorderRadius.circular(20)), child: const Text('1/2', style: TextStyle(color: ObsidianTheme.purpleLight, fontSize: 12))),
                 ]),
                 const SizedBox(height: 16),

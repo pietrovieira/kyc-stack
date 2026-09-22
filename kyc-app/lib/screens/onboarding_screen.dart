@@ -29,12 +29,14 @@ class OnboardingScreen extends StatelessWidget {
                       child: const Center(child: Text('◈', style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w900))),
                     ),
                     const SizedBox(width: 12),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('BANCO OBSIDIAN', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 16, color: Colors.white)),
-                        Text('Seu futuro em roxo e preto', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                      ],
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('BANCO OBSIDIAN', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 16, color: Colors.white)),
+                          Text('Seu futuro em roxo e preto', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                        ],
+                      ),
                     ),
                   ],
                 ),

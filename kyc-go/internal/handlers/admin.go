@@ -152,6 +152,27 @@ func (h *AdminHandler) Reject(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Cliente rejeitado", "customer": customer})
 }
 
+func (h *AdminHandler) ClearCustomers(c *gin.Context) {
+	err := h.DB.Transaction(func(tx *gorm.DB) error {
+		// Delete dependent tables first (foreign key CustomerID)
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&models.KycSession{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&models.IdempotencyKey{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&models.Customer{}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "error": "Falha ao limpar registros: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Todos os registros foram excluídos"})
+}
+
 func escapeLike(s string) string {
 	s = strings.ReplaceAll(s, "%", "\\%")
 	s = strings.ReplaceAll(s, "_", "\\_")
