@@ -158,6 +158,7 @@ class _WaitingScreenState extends State<WaitingScreen> {
   Widget build(BuildContext context) {
     final status = _status ?? 'profile_completed';
     final color = _statusColor(status);
+    final endereco = _customer?['endereco'] is Map ? _customer!['endereco'] as Map<String, dynamic> : null;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: ObsidianTheme.gradient),
@@ -204,10 +205,21 @@ class _WaitingScreenState extends State<WaitingScreen> {
                     const Divider(color: Colors.white10, height: 1),
                     const SizedBox(height: 12),
                     _InfoRow(label: 'Nome', value: '${_customer!['nome'] ?? ''} ${_customer!['sobrenome'] ?? ''}'),
+                    _InfoRow(label: 'CPF', value: _customer!['cpf']?.toString() ?? widget.cpf),
+                    if (_customer!['data_nascimento'] != null && _customer!['data_nascimento'].toString().isNotEmpty) _InfoRow(label: 'Nascimento', value: _customer!['data_nascimento'].toString()),
                     if (_customer!['email'] != null && _customer!['email'].toString().isNotEmpty) _InfoRow(label: 'Email', value: _customer!['email'].toString()),
                     if (_customer!['telefone'] != null && _customer!['telefone'].toString().isNotEmpty) _InfoRow(label: 'Telefone', value: _customer!['telefone'].toString()),
-                    _InfoRow(label: 'Cidade', value: '${_customer!['cidade'] ?? ''}/${_customer!['estado'] ?? ''}'),
-                    _InfoRow(label: 'CEP', value: _customer!['cep']?.toString() ?? ''),
+                    const SizedBox(height: 8),
+                    const Divider(color: Colors.white10, height: 1),
+                    const SizedBox(height: 8),
+                    _InfoRow(label: 'Logradouro', value: (endereco?['logradouro'] ?? _customer!['logradouro'])?.toString() ?? ''),
+                    _InfoRow(label: 'Número', value: (endereco?['numero'] ?? _customer!['numero'])?.toString() ?? ''),
+                    if ((endereco?['complemento'] ?? _customer!['complemento']) != null && (endereco?['complemento'] ?? _customer!['complemento']).toString().isNotEmpty) _InfoRow(label: 'Complemento', value: (endereco?['complemento'] ?? _customer!['complemento']).toString()),
+                    _InfoRow(label: 'Bairro', value: (endereco?['bairro'] ?? _customer!['bairro'])?.toString() ?? ''),
+                    _InfoRow(label: 'Cidade', value: (endereco?['cidade'] ?? _customer!['cidade'])?.toString() ?? ''),
+                    _InfoRow(label: 'UF', value: (endereco?['estado'] ?? _customer!['estado'])?.toString() ?? ''),
+                    _InfoRow(label: 'CEP', value: (endereco?['cep'] ?? _customer!['cep'])?.toString() ?? ''),
+                    _InfoRow(label: 'País', value: (endereco?['pais'] ?? _customer!['pais'])?.toString() ?? ''),
                   ] else if (_loading)
                     const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator(color: ObsidianTheme.purple)),
                 ]),
