@@ -34,8 +34,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.0
   crypto: ^3.0.0
-  permission_handler: ^11.3.0
-  google_fonts: ^8.2.1
   # FaceTec Device SDK - escolha UM:
   # Para produção, use o plugin nativo (wrapping iOS/Android SDK):
   # facetec_sdk: ^9.6.88  # verifique versão em dev.facetec.com (Configuration Wizard)

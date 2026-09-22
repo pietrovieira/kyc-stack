@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class ObsidianTheme {
   static const purple = Color(0xFF7C4DFF);
@@ -19,10 +18,9 @@ class ObsidianTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: black,
       primaryColor: purple,
-      // Google Fonts: Inter (body) + JetBrains Mono (monospace)
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
-        displayLarge: GoogleFonts.inter(fontWeight: FontWeight.w900, letterSpacing: -0.5),
-        titleLarge: GoogleFonts.inter(fontWeight: FontWeight.w800),
+      textTheme: ThemeData.dark().textTheme.copyWith(
+        displayLarge: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        titleLarge: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800),
       ),
       colorScheme: ColorScheme.fromSeed(
         seedColor: purple,
@@ -65,6 +63,6 @@ class ObsidianTheme {
   }
 
   // Helpers para uso direto
-  static TextStyle get mono => GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: 12);
-  static TextStyle get heading => GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800);
+  static TextStyle get mono => const TextStyle(fontFamily: 'monospace', color: Colors.white70, fontSize: 12);
+  static TextStyle get heading => const TextStyle(fontFamily: 'Inter', color: Colors.white, fontWeight: FontWeight.w800);
 }

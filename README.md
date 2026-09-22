@@ -267,14 +267,23 @@ flutter run --dart-define=BACKEND_URL=http://localhost:3002 # desktop/web
 
 **APK Release (produção VPS `191.252.204.221.sslip.io` com HMAC produção):**
 ```bash
+# Universal (50MB) - debug signing
 flutter build apk --release \
   --dart-define=BACKEND_URL=https://191.252.204.221.sslip.io \
   --dart-define=HMAC_SECRET=70358b8445e26c0845cdf866a84ee51800d14706019e2fe5a6a9fdea4e9781f5 \
   --dart-define=HMAC_KEY_ID=obsidian_app
-# → build/app/outputs/flutter-apk/app-release.apk (50MB, assinado debug; para Play Store gere keystore)
+# → build/app/outputs/flutter-apk/app-release.apk (48MB)
+
+# Split por ABI (recomendado, ~15-19MB cada) - sem google_fonts/permission_handler + minify
+flutter build apk --release --split-per-abi \
+  --dart-define=BACKEND_URL=https://191.252.204.221.sslip.io \
+  --dart-define=HMAC_SECRET=70358b8445e26c0845cdf866a84ee51800d14706019e2fe5a6a9fdea4e9781f5 \
+  --dart-define=HMAC_KEY_ID=obsidian_app
+# → app-armeabi-v7a-release.apk (14.9MB) / app-arm64-v8a-release.apk (17.4MB) / app-x86_64-release.apk (18.9MB)
+# Para Play Store: flutter build appbundle --release (mesmos dart-define)
 ```
 
-Abas: **Início** (onboarding) → **Perfil** (form) → **KYC** (doc + selfie) → **Avançado** (KycScreen preservada com 5 fluxos FaceTec).
+Fluxo 3 steps (sem tabs): **1 Cadastro completo** (`ProfileStepScreen`) → **2 Enviar documentos** (`DocumentStepScreen` RG/CNH/passport, fake blob) → **3 Aguardando** (`WaitingScreen` polling `getStatus` 10s, backoffice aprova/reprova).
 
 ---
 
