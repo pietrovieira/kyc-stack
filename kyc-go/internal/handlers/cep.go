@@ -18,13 +18,28 @@ type CepHandler struct {
 }
 
 type viaCepResponse struct {
-	CEP         string `json:"cep"`
-	Logradouro  string `json:"logradouro"`
-	Complemento string `json:"complemento"`
-	Bairro      string `json:"bairro"`
-	Localidade  string `json:"localidade"`
-	UF          string `json:"uf"`
-	Erro        bool   `json:"erro"`
+	CEP         string   `json:"cep"`
+	Logradouro  string   `json:"logradouro"`
+	Complemento string   `json:"complemento"`
+	Bairro      string   `json:"bairro"`
+	Localidade  string   `json:"localidade"`
+	UF          string   `json:"uf"`
+	Erro        flexBool `json:"erro"`
+}
+
+// flexBool aceita `true`/`false` (bool) e também `"true"`/`"false"` (string).
+// O ViaCEP responde `{"erro": "true"}` — string — para CEP inexistente, o que
+// quebrava o Unmarshal do bool e devolvia 502 em vez de 404.
+type flexBool bool
+
+func (b *flexBool) UnmarshalJSON(data []byte) error {
+	switch strings.ToLower(strings.Trim(string(data), `"`)) {
+	case "true", "1":
+		*b = true
+	default:
+		*b = false
+	}
+	return nil
 }
 
 func (h *CepHandler) Lookup(c *gin.Context) {
