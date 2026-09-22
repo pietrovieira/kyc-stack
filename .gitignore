@@ -1,0 +1,15 @@
+# certs private keys (self-signed + LE via host)
+certs/*.pem
+certs/*.key
+certs/*.crt
+# Flutter build
+kyc-app/build/
+kyc-app/.dart_tool/
+# Node
+kyc-backoffice/node_modules/
+kyc-backoffice/.next/
+# Env
+kyc-backoffice/.env.local
+kyc-go/.env
+# OS
+.DS_Store

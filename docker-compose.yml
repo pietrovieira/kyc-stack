@@ -1,0 +1,204 @@
+services:
+  # Postgres 16 - substitui SQLite (obrigatório para microserviços Go)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kyc
+      POSTGRES_PASSWORD: kyc
+      POSTGRES_DB: kyc
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kyc"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - kyc-network
+
+  # Redis para Asynq (Go) + HMAC nonce + cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - kyc-network
+
+  # Go API - Gateway + Customer + KYC (api/v1 com HMAC, /api/admin com JWT)
+  # Exposto via nginx HTTPS 3002 -> 8080 (TLS termination para IP)
+  kyc-go:
+    build:
+      context: ./kyc-go
+      dockerfile: Dockerfile
+    expose:
+      - "8080"
+    env_file:
+      - ./kyc-go/.env.production
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://kyc:kyc@postgres:5432/kyc?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      FACETEC_SERVER_URL: http://facetec-server:8080
+      # Segurança: httpOnly + Secure + SameSite Strict + 30min expire (ver middleware/security.go)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kyc-network
+    restart: unless-stopped
+
+  # Go Worker - Background Jobs (apenas app usa async para FaceTec, backoffice é sync)
+  # Consome fila kyc + default via Asynq (Redis)
+  kyc-worker:
+    build:
+      context: ./kyc-go
+      dockerfile: Dockerfile
+    command: /app/worker
+    env_file:
+      - ./kyc-go/.env.production
+    environment:
+      DATABASE_URL: postgres://kyc:kyc@postgres:5432/kyc?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      FACETEC_SERVER_URL: http://facetec-server:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kyc-network
+    restart: unless-stopped
+
+  # Next.js Backoffice - Banco Obsidian (shadcn/radix, roxo/preto)
+  # /login -> /dashboard (tabela de cadastros + status KYC)
+  # HTTPS via nginx 3001 -> 3001, COOKIE_SECURE=true agora funciona
+  kyc-backoffice:
+    build:
+      context: ./kyc-backoffice
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://191.252.204.221:3002
+        NEXT_PUBLIC_BANK_NAME: Banco Obsidian
+    expose:
+      - "3001"
+    environment:
+      API_URL: http://kyc-go:8080
+      NEXT_PUBLIC_API_URL: https://191.252.204.221:3002
+      COOKIE_SECURE: "true"
+      NODE_ENV: production
+    depends_on:
+      kyc-go:
+        condition: service_started
+    networks:
+      - kyc-network
+    restart: unless-stopped
+
+  # Nginx TLS termination para IP sem domínio (self-signed SAN IP)
+  # https://191.252.204.221:3001 -> backoffice, https://191.252.204.221:3002 -> go api
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "3001:3001"
+      - "3002:3002"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - kyc-backoffice
+      - kyc-go
+    networks:
+      - kyc-network
+    restart: unless-stopped
+
+  # Rails legado - mantido para referência (opcional, desabilitado por padrão)
+  # Descomente para rodar lado a lado durante migração
+  # kyc-backend:
+  #   build:
+  #     context: ./kyc-backend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3002:80"
+  #   env_file:
+  #     - ./kyc-backend/.env
+  #   environment:
+  #     RAILS_ENV: production
+  #     FACETEC_SERVER_URL: http://facetec-server:8080
+  #     REDIS_URL: redis://redis:6379/0
+  #   volumes:
+  #     - kyc_backend_storage:/rails/storage
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - kyc-network
+
+  # FaceTec Server SDK (Standard) - Baixe o ZIP em dev.facetec.com e extraia para ./facetec-server
+  # Passos Getting Started:
+  # 1. Configuration Wizard -> Server -> In-Memory Stub DB -> Initialize For Postman: Yes
+  # 2. Download Server SDK e extrair para ./facetec-server/FaceTec-Server-Webservice/
+  # 3. Este compose espera a imagem já buildada via Deployment-Scripts/run.sh
+  facetec-server:
+    image: facetec-server:local
+    build:
+      context: ./facetec-server/FaceTec-Server-Webservice
+      dockerfile: Dockerfile
+    env_file:
+      - ./kyc-go/.env
+    ports:
+      - "8080:8080"
+    environment:
+      - FACETEC_FACEMAP_ENCRYPTION_KEY=${FACETEC_FACEMAP_ENCRYPTION_KEY}
+      - FACETEC_DEVICE_KEY_IDENTIFIER=${FACETEC_DEVICE_KEY_IDENTIFIER}
+      - FACETEC_PRODUCTION_KEY=${FACETEC_PRODUCTION_KEY}
+      - FACETEC_PUBLIC_FACE_SCAN_ENCRYPTION_KEY=${FACETEC_PUBLIC_FACE_SCAN_ENCRYPTION_KEY}
+    volumes:
+      - facetec_db:/facetec/db
+      - facetec_logs:/facetec/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - kyc-network
+    profiles:
+      - facetec
+
+  # FaceTec Usage Log Server (opcional mas recomendado para debug)
+  facetec-usage-log-server:
+    image: facetec-usage-log-server:local
+    build:
+      context: ./facetec-server/FaceTec-Server-Webservice
+      dockerfile: Dockerfile.usage
+    ports:
+      - "8081:8081"
+    depends_on:
+      - facetec-server
+    networks:
+      - kyc-network
+    profiles:
+      - facetec
+
+volumes:
+  postgres_data:
+  redis_data:
+  facetec_db:
+  facetec_logs:
+  # legado
+  kyc_backend_storage:
+
+networks:
+  kyc-network:
+    driver: bridge
