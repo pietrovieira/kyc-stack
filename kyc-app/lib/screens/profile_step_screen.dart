@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/obsidian_theme.dart';
 import '../services/customer_service.dart';
 
@@ -28,6 +29,7 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
   final _cep = TextEditingController();
   final _pais = TextEditingController(text: 'Brasil');
   bool _loading = false;
+  bool _cepLoading = false;
   String? _error;
 
   @override
@@ -47,6 +49,62 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
     _cep.dispose();
     _pais.dispose();
     super.dispose();
+  }
+
+  // Máscara de data DD/MM/AAAA
+  void _onDobChanged(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    var out = '';
+    for (var i = 0; i < digits.length && i < 8; i++) {
+      if (i == 2 || i == 4) out += '/';
+      out += digits[i];
+    }
+    if (out != value) {
+      _dob.value = TextEditingValue(
+        text: out,
+        selection: TextSelection.collapsed(offset: out.length),
+      );
+    }
+  }
+
+  // Máscara de CEP 00000-000
+  void _onCepChanged(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    var out = '';
+    for (var i = 0; i < digits.length && i < 8; i++) {
+      if (i == 5) out += '-';
+      out += digits[i];
+    }
+    if (out != value) {
+      _cep.value = TextEditingValue(
+        text: out,
+        selection: TextSelection.collapsed(offset: out.length),
+      );
+    }
+    if (out.length == 9) _lookupCep(out);
+  }
+
+  // Consulta o CEP e preenche o endereço automaticamente
+  Future<void> _lookupCep(String cep) async {
+    final digits = cep.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 8) return;
+    setState(() { _cepLoading = true; _error = null; });
+    try {
+      final res = await widget.customerService.lookupCep(digits);
+      if (!mounted) return;
+      setState(() {
+        _logradouro.text = (res['logradouro'] as String?) ?? '';
+        _complemento.text = (res['complemento'] as String?) ?? '';
+        _bairro.text = (res['bairro'] as String?) ?? '';
+        _cidade.text = (res['cidade'] as String?) ?? '';
+        _estado.text = (res['estado'] as String?) ?? '';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _cepLoading = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -105,6 +163,8 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
                     controller: _cpf,
                     label: 'CPF (apenas números, único) *',
                     prefix: Icons.badge,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9]')), LengthLimitingTextInputFormatter(11)],
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'CPF é obrigatório';
                       final digits = v.replaceAll(RegExp(r'\D'), '');
@@ -119,11 +179,14 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
                   ]),
                   _Field(
                     controller: _dob,
-                    label: 'Data nascimento (YYYY-MM-DD) *',
+                    label: 'Data nascimento (DD/MM/AAAA) *',
                     prefix: Icons.cake,
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9/]'))],
+                    onChanged: _onDobChanged,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Data é obrigatória';
-                      if (DateTime.tryParse(v) == null) return 'Use YYYY-MM-DD';
+                      if (!RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(v.trim())) return 'Use DD/MM/AAAA';
                       return null;
                     },
                   ),
@@ -143,6 +206,8 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
                     label: 'Telefone (opcional)',
                     prefix: Icons.phone,
                     required: false,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return null;
                       final digits = v.replaceAll(RegExp(r'\D'), '');
@@ -154,9 +219,37 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
                 const SizedBox(height: 16),
                 _Section(title: 'Endereço completo', children: [
                   Row(children: [
+                    Expanded(
+                      child: _Field(
+                        controller: _cep,
+                        label: 'CEP (00000-000) *',
+                        prefix: Icons.pin_drop,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9-]'))],
+                        onChanged: _onCepChanged,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'CEP é obrigatório';
+                          if (!RegExp(r'^\d{5}-\d{3}$').hasMatch(v.trim())) return 'CEP inválido';
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: _Field(controller: _pais, label: 'País', enabled: false)),
+                  ]),
+                  if (_cepLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Row(children: [
+                        SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianTheme.purple)),
+                        SizedBox(width: 8),
+                        Text('Buscando endereço...', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      ]),
+                    ),
+                  Row(children: [
                     Expanded(flex: 3, child: _Field(controller: _logradouro, label: 'Logradouro *', prefix: Icons.location_on)),
                     const SizedBox(width: 12),
-                    Expanded(child: _Field(controller: _numero, label: 'Número *')),
+                    Expanded(child: _Field(controller: _numero, label: 'Número *', keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))])),
                   ]),
                   _Field(controller: _complemento, label: 'Complemento (opcional)', required: false),
                   _Field(controller: _bairro, label: 'Bairro *', prefix: Icons.map),
@@ -174,21 +267,6 @@ class _ProfileStepScreenState extends State<ProfileStepScreen> {
                         },
                       ),
                     ),
-                  ]),
-                  Row(children: [
-                    Expanded(
-                      child: _Field(
-                        controller: _cep,
-                        label: 'CEP (00000-000) *',
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) return 'CEP é obrigatório';
-                          if (!RegExp(r'^\d{5}-?\d{3}$').hasMatch(v.trim())) return 'CEP inválido';
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: _Field(controller: _pais, label: 'País', enabled: false)),
                   ]),
                 ]),
                 const SizedBox(height: 20),
@@ -231,12 +309,18 @@ class _Field extends StatelessWidget {
   final String? Function(String?)? validator;
   final bool required;
   final bool enabled;
-  const _Field({required this.controller, required this.label, this.prefix, this.validator, this.required = true, this.enabled = true});
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onChanged;
+  const _Field({required this.controller, required this.label, this.prefix, this.validator, this.required = true, this.enabled = true, this.keyboardType, this.inputFormatters, this.onChanged});
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       enabled: enabled,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      onChanged: onChanged,
       validator: validator ?? (required ? (v) => v == null || v.isEmpty ? 'Obrigatório' : null : null),
       decoration: InputDecoration(labelText: label, prefixIcon: prefix != null ? Icon(prefix, size: 18) : null),
       style: const TextStyle(color: Colors.white),

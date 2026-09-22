@@ -11,5 +11,10 @@ kyc-backoffice/.next/
 # Env
 kyc-backoffice/.env.local
 kyc-go/.env
+# Uploads locais
+kyc-go/uploads/
+uploads/
+# Claude Code local
+.claude/
 # OS
 .DS_Store

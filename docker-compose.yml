@@ -49,7 +49,10 @@ services:
       DATABASE_URL: postgres://kyc:kyc@postgres:5432/kyc?sslmode=disable
       REDIS_URL: redis://redis:6379/0
       FACETEC_SERVER_URL: http://facetec-server:8080
+      UPLOAD_DIR: /app/uploads
       # Segurança: httpOnly + Secure + SameSite Strict + 30min expire (ver middleware/security.go)
+    volumes:
+      - kyc_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -196,6 +199,7 @@ volumes:
   redis_data:
   facetec_db:
   facetec_logs:
+  kyc_uploads:
   # legado
   kyc_backend_storage:
 

@@ -59,17 +59,34 @@ class _DocumentStepScreenState extends State<DocumentStepScreen> {
     setState(() => _loading = true);
     _error = null;
     try {
-      // Converte selfie para base64 para enviar ao Facetec (liveness)
-      // Documento também pode ser enviado como base64 adicional se necessário
       final selfieBytes = await File(_selfieImage!.path).readAsBytes();
       final docBytes = await File(_docImage!.path).readAsBytes();
-      // Usa selfie como requestBlob principal; doc é enviado junto como base64 concatenado para o worker
-      // O Go irá criar KycSession com digest do blob e enfileirar para Facetec
+
+      // 1) Upload dos arquivos para o backend (pasta organizada uploads/{cpf}/{tipo}/)
+      await widget.customerService.uploadDocument(
+        cpf: widget.cpf,
+        docType: _docType,
+        bytes: docBytes,
+        filename: _docImage!.name,
+      );
+      await widget.customerService.uploadDocument(
+        cpf: widget.cpf,
+        docType: 'selfie',
+        bytes: selfieBytes,
+        filename: _selfieImage!.name,
+      );
+
+      // 2) Envia selfie ao FaceTec como requestBlob (liveness). O documento
+      //    também vai junto como base64 para o worker associar id scan.
       final selfieB64 = base64Encode(selfieBytes);
       final docB64 = base64Encode(docBytes);
-      // Combina ambos para garantir que o backend receba dados (simulação aprova 80%)
       final combinedBlob = '$selfieB64|$docB64';
-      final res = await widget.customerService.submitKyc(cpf: widget.cpf, requestBlob: combinedBlob, documentType: _docType);
+
+      final res = await widget.customerService.submitKyc(
+        cpf: widget.cpf,
+        requestBlob: combinedBlob,
+        documentType: _docType,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Documentos enviados'), backgroundColor: ObsidianTheme.purple));
       widget.onDocumentsSent();

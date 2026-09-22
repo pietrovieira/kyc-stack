@@ -19,6 +19,8 @@ type Config struct {
 	KYCAppOrigin       string
 	AdminEmail         string
 	AdminPassword      string
+	UploadDir          string
+	CepAPIBaseURL      string
 }
 
 func Load() *Config {
@@ -36,6 +38,8 @@ func Load() *Config {
 		KYCAppOrigin:       getEnv("KYC_APP_ORIGIN", "http://localhost:3001,http://localhost:5173,http://localhost:*"),
 		AdminEmail:         strings.ToLower(getEnv("ADMIN_SEED_EMAIL", "admin@obsidian.com")),
 		AdminPassword:      getEnv("ADMIN_SEED_PASSWORD", "Obsidian123!"),
+		UploadDir:          getEnv("UPLOAD_DIR", "/app/uploads"),
+		CepAPIBaseURL:      getEnv("CEP_API_BASE_URL", "https://viacep.com.br/ws"),
 	}
 }
 

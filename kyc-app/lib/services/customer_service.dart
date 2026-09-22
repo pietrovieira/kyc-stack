@@ -7,6 +7,11 @@ class CustomerService {
   final http.Client _client;
   CustomerService({http.Client? client}) : _client = client ?? http.Client();
 
+  static String? _blankToNull(String? v) {
+    final t = v?.trim() ?? '';
+    return t.isEmpty ? null : t;
+  }
+
   // Etapa 1: cadastro perfil + endereço (idempotente por CPF)
   Future<Map<String, dynamic>> createProfile({
     required String cpf,
@@ -24,17 +29,19 @@ class CustomerService {
     required String cep,
     String? pais,
   }) async {
+    // Campos opcionais vazios viram null: o backend tem uniqueIndex no email,
+    // e enviar '' faz o 2º cadastro sem email colidir (SQLSTATE 23505).
     final body = jsonEncode({
       'customer': {
         'cpf': cpf,
         'nome': nome,
         'sobrenome': sobrenome,
         'data_nascimento': dataNascimento,
-        'email': email,
-        'telefone': telefone,
+        'email': _blankToNull(email),
+        'telefone': _blankToNull(telefone),
         'logradouro': logradouro,
         'numero': numero,
-        'complemento': complemento,
+        'complemento': _blankToNull(complemento),
         'bairro': bairro,
         'cidade': cidade,
         'estado': estado,
@@ -89,6 +96,27 @@ class CustomerService {
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
 
+  // Busca endereço por CEP (ViaCEP via backend, com HMAC)
+  Future<Map<String, dynamic>> lookupCep(String cep) async {
+    final digits = cep.replaceAll(RegExp(r'\D'), '');
+    final path = '/api/v1/cep/$digits';
+    final headers = HmacService.signedHeaders(method: 'GET', path: path, body: '');
+    final res = await _client.get(Uri.parse(AppConfig.v1Cep(digits)), headers: headers);
+    if (res.body.trimLeft().startsWith('<!DOCTYPE')) {
+      throw Exception('Backend HTML em ${AppConfig.v1Cep(digits)} — porta incorreta?');
+    }
+    Map<String, dynamic> json;
+    try {
+      json = jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw Exception('Resposta CEP inválida (${res.statusCode})');
+    }
+    if (res.statusCode >= 400) {
+      throw Exception(json['error'] ?? 'CEP não encontrado');
+    }
+    return json;
+  }
+
   // Etapa 2: KYC documentos + selfie (requestBlob FaceTec) - async via Redis
   Future<Map<String, dynamic>> submitKyc({
     required String cpf,
@@ -116,6 +144,51 @@ class CustomerService {
       throw Exception('Resposta KYC inválida (${res.statusCode}): ${res.body.substring(0, 200)}');
     }
     if (res.statusCode >= 400) throw Exception(json['error'] ?? 'Erro KYC');
+    return json;
+  }
+
+  // Upload de arquivo (multipart) -> salva no backend em uploads/{cpf}/{tipo}/
+  Future<Map<String, dynamic>> uploadDocument({
+    required String cpf,
+    required String docType,
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final path = '/api/v1/customers/$cpf/documents';
+    final uri = Uri.parse(AppConfig.v1CustomerDocuments(cpf));
+
+    final req = http.MultipartRequest('POST', uri);
+    req.fields['type'] = docType;
+    req.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+
+    // Gera o corpo multipart e assina HMAC sobre os bytes exatos enviados.
+    final byteStream = req.finalize();
+    final bodyBytes = await byteStream.toBytes();
+    final contentType = req.headers['content-type']!;
+
+    final headers = HmacService.signedBytesHeaders(
+      method: 'POST',
+      path: path,
+      body: bodyBytes,
+      contentType: contentType,
+    );
+
+    final httpReq = http.Request('POST', uri);
+    httpReq.headers.addAll(headers);
+    httpReq.bodyBytes = bodyBytes;
+    final streamed = await _client.send(httpReq);
+    final res = await http.Response.fromStream(streamed);
+
+    if (res.body.trimLeft().startsWith('<!DOCTYPE')) {
+      throw Exception('Backend HTML em upload — verifique BACKEND_URL');
+    }
+    Map<String, dynamic> json;
+    try {
+      json = jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (_) {
+      throw Exception('Resposta upload inválida (${res.statusCode}): ${res.body.substring(0, 200)}');
+    }
+    if (res.statusCode >= 400) throw Exception(json['error'] ?? 'Erro upload');
     return json;
   }
 

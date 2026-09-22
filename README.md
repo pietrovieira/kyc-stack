@@ -43,6 +43,21 @@ Stack de KYC para abertura de conta bancária (simulação Banco Obsidian) com *
 | `kyc-backoffice` | `3001` | `3001` | Next.js 16 App Router + shadcn |
 | `facetec-server` | `8080` | `8080` | FaceTec Server SDK (profile `facetec`, opcional) |
 
+### Domínios (produção VPS `191.252.204.221`)
+
+Certbot Let's Encrypt no host nginx (`/etc/nginx/sites-available/`), que faz TLS termination e proxya para o nginx docker self-signed (`127.0.0.1:3001/:3002`).
+
+| Domínio | Serviço | Proxy host → docker | Notas |
+|---------|---------|---------------------|-------|
+| `banco-obsidian.bookinglab.digital` | Backoffice Next.js | `443 → 127.0.0.1:3001` | Login + dashboard (todo o site) |
+| `obsidian-api.bookinglab.digital` | API Go (Gin) | `443 → 127.0.0.1:3002` | Apenas `/api/*`, `/health`, `/up`; resto 404 |
+| `191.252.204.221.sslip.io` | legado (IP) | — | Cert antigo para acesso direto por IP |
+
+- Backoffice: https://banco-obsidian.bookinglab.digital
+- API: https://obsidian-api.bookinglab.digital/api/v1/customers (HMAC) e https://obsidian-api.bookinglab.digital/api/admin/* (JWT)
+
+`KYC_APP_ORIGIN` (produção) inclui `https://obsidian-api.bookinglab.digital`, `https://banco-obsidian.bookinglab.digital` e `https://191.252.204.221.sslip.io` (ver `kyc-go/.env.production`).
+
 ---
 
 ## Endpoints
@@ -164,7 +179,7 @@ kyc-go/
 - **DB:** `postgres://kyc:kyc@postgres:5432/kyc?sslmode=disable` (GORM, `AutoMigrate`)
 - **Redis:** `redis://redis:6379/0` (go-redis + Asynq `RedisClientOpt`)
 - **Auth:** JWT `HS256` 30min, `admin_token` cookie HttpOnly Secure SameSite Strict.
-- **CORS:** `KYC_APP_ORIGIN=http://localhost:3001,http://localhost:3002,http://localhost:5173` (configurável)
+- **CORS:** `KYC_APP_ORIGIN=http://localhost:3001,http://localhost:3002,http://localhost:5173` (configurável; produção inclui os domínios `.bookinglab.digital`)
 
 ### Background Jobs (Regra: só App async, Backoffice sync)
 
@@ -265,18 +280,18 @@ flutter run --dart-define=BACKEND_URL=http://10.0.2.2:3002 # emulator
 flutter run --dart-define=BACKEND_URL=http://localhost:3002 # desktop/web
 ```
 
-**APK Release (produção VPS `191.252.204.221.sslip.io` com HMAC produção):**
+**APK Release (produção `obsidian-api.bookinglab.digital` com HMAC produção):**
 ```bash
 # Universal (50MB) - debug signing
 flutter build apk --release \
-  --dart-define=BACKEND_URL=https://191.252.204.221.sslip.io \
+  --dart-define=BACKEND_URL=https://obsidian-api.bookinglab.digital \
   --dart-define=HMAC_SECRET=70358b8445e26c0845cdf866a84ee51800d14706019e2fe5a6a9fdea4e9781f5 \
   --dart-define=HMAC_KEY_ID=obsidian_app
 # → build/app/outputs/flutter-apk/app-release.apk (48MB)
 
 # Split por ABI (recomendado, ~15-19MB cada) - sem google_fonts/permission_handler + minify
 flutter build apk --release --split-per-abi \
-  --dart-define=BACKEND_URL=https://191.252.204.221.sslip.io \
+  --dart-define=BACKEND_URL=https://obsidian-api.bookinglab.digital \
   --dart-define=HMAC_SECRET=70358b8445e26c0845cdf866a84ee51800d14706019e2fe5a6a9fdea4e9781f5 \
   --dart-define=HMAC_KEY_ID=obsidian_app
 # → app-armeabi-v7a-release.apk (14.9MB) / app-arm64-v8a-release.apk (17.4MB) / app-x86_64-release.apk (18.9MB)

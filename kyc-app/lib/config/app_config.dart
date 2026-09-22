@@ -21,6 +21,8 @@ class AppConfig {
   static String v1Customer(String cpf) => '$backendBaseUrl/api/v1/customers/$cpf';
   static String v1CustomerKyc(String cpf) => '$backendBaseUrl/api/v1/customers/$cpf/kyc';
   static String v1CustomerStatus(String cpf) => '$backendBaseUrl/api/v1/customers/$cpf/status';
+  static String v1CustomerDocuments(String cpf) => '$backendBaseUrl/api/v1/customers/$cpf/documents';
+  static String v1Cep(String cep) => '$backendBaseUrl/api/v1/cep/$cep';
 
   // HMAC - em prod viria de secure storage / env
   static const String hmacKeyId = String.fromEnvironment('HMAC_KEY_ID', defaultValue: 'obsidian_app');

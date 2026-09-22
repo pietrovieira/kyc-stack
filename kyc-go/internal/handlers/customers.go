@@ -127,11 +127,11 @@ func (h *CustomerHandler) Create(c *gin.Context) {
 		Nome:                  strings.TrimSpace(input.Customer.Nome),
 		Sobrenome:             strings.TrimSpace(input.Customer.Sobrenome),
 		DataNascimento:        dob,
-		Email:                 input.Customer.Email,
-		Telefone:              input.Customer.Telefone,
+		Email:                 blankToNil(input.Customer.Email),
+		Telefone:              blankToNil(input.Customer.Telefone),
 		Logradouro:            strings.TrimSpace(input.Customer.Logradouro),
 		Numero:                strings.TrimSpace(input.Customer.Numero),
-		Complemento:           input.Customer.Complemento,
+		Complemento:           blankToNil(input.Customer.Complemento),
 		Bairro:                strings.TrimSpace(input.Customer.Bairro),
 		Cidade:                strings.TrimSpace(input.Customer.Cidade),
 		Estado:                strings.ToUpper(strings.TrimSpace(input.Customer.Estado)),
@@ -451,6 +451,16 @@ func isUniqueViolation(err error) bool {
 	}
 	msg := err.Error()
 	return strings.Contains(msg, "duplicate") || strings.Contains(msg, "unique") || strings.Contains(msg, "23505")
+}
+func blankToNil(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	t := strings.TrimSpace(*s)
+	if t == "" {
+		return nil
+	}
+	return &t
 }
 func sha256Hex(s string) string {
 	h := sha256.Sum256([]byte(s))

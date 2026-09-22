@@ -99,6 +99,8 @@ func main() {
 	customerH := &handlers.CustomerHandler{DB: db, AsynqClient: asynqClient}
 	adminH := &handlers.AdminHandler{DB: db, JWTSecret: cfg.JWTSecret}
 	facetecH := &handlers.FacetecHandler{DB: db, Service: facetecSvc}
+	documentH := &handlers.DocumentHandler{DB: db, UploadDir: cfg.UploadDir}
+	cepH := &handlers.CepHandler{BaseURL: cfg.CepAPIBaseURL}
 
 	// Admin (backoffice) - SEM HMAC, com JWT/Cookie + CSRF, síncrono
 	admin := r.Group("/api/admin")
@@ -127,6 +129,9 @@ func main() {
 		v1.PATCH("/customers/:id", customerH.Update)
 		v1.POST("/customers/:id/kyc", customerH.KYC)
 		v1.GET("/customers/:id/status", customerH.Status)
+		v1.POST("/customers/:id/documents", documentH.Upload)
+
+		v1.GET("/cep/:cep", cepH.Lookup)
 
 		v1.GET("/facetec/config", facetecH.Config)
 		v1.GET("/facetec/status", facetecH.Status)

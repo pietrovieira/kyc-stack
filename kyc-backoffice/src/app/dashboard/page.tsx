@@ -1,12 +1,14 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Link from "next/link"
-import { formatCPF, statusLabel } from "@/lib/utils"
+import { formatCPF, formatDateBR, statusFromNumber, statusLabel } from "@/lib/utils"
+import { CustomerDetailModal } from "@/components/customer-detail-modal"
+import type { Customer } from "@/lib/types"
 
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://kyc-go:8080"
 
@@ -35,21 +37,7 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams
   let data: {
-    customers: Array<{
-      ID: number
-      cpf: string
-      nome: string
-      sobrenome: string
-      dataNascimento: string
-      email?: string
-      telefone?: string
-      cidade: string
-      estado: string
-      cep: string
-      status: number
-      created_at: string
-      KycSessions?: Array<{ ID: number; status: number; success?: boolean; match_level?: number; created_at: string }>
-    }>
+    customers: Customer[]
     stats: Record<string, number>
     pagination: { total: number }
   }
@@ -57,15 +45,6 @@ export default async function DashboardPage({
     data = await fetchCustomers(params)
   } catch {
     return <div className="p-8">Erro ao carregar. Verifique se o Go API está rodando em {API_URL}.</div>
-  }
-
-  const statusMap: Record<number, string> = {
-    0: "draft",
-    1: "profile_completed",
-    2: "kyc_pending",
-    3: "kyc_approved",
-    4: "kyc_rejected",
-    5: "account_active",
   }
 
   return (
@@ -171,10 +150,10 @@ export default async function DashboardPage({
                   </TableRow>
                 ) : (
                   data.customers.map((c) => {
-                    const lastKyc = c.KycSessions?.[0]
-                    const statusStr = statusMap[c.status] || "draft"
+                    const lastKyc = c.kyc_sessions?.[0]
+                    const statusStr = statusFromNumber(c.status)
                     return (
-                      <TableRow key={c.ID} className="border-[#222] hover:bg-[#1f1f1f]">
+                      <TableRow key={c.id} className="border-[#222] hover:bg-[#1f1f1f]">
                         <TableCell>
                           <div className="font-semibold">
                             {c.nome} {c.sobrenome}
@@ -184,9 +163,7 @@ export default async function DashboardPage({
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs">{formatCPF(c.cpf)}</TableCell>
-                        <TableCell className="text-xs">
-                          {new Date(c.dataNascimento).toLocaleDateString("pt-BR")}
-                        </TableCell>
+                        <TableCell className="text-xs">{formatDateBR(c.data_nascimento)}</TableCell>
                         <TableCell className="text-xs max-w-[180px] truncate" title={`${c.cidade}/${c.estado} • ${c.cep}`}>
                           {c.cidade}/{c.estado} • {c.cep}
                         </TableCell>
@@ -213,7 +190,7 @@ export default async function DashboardPage({
                                 {lastKyc.success ? "Liveness OK" : "Falhou"} • M:{lastKyc.match_level ?? "-"}
                               </Badge>
                               <div className="text-[11px] text-white/40">
-                                {new Date(lastKyc.created_at).toLocaleDateString("pt-BR")}
+                                {formatDateBR(lastKyc.created_at)}
                               </div>
                             </div>
                           ) : (
@@ -222,12 +199,7 @@ export default async function DashboardPage({
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Link
-                              href={`/dashboard/${c.ID}`}
-                              className="inline-flex h-7 items-center rounded-md border border-[#333] px-2.5 text-xs hover:bg-white/10"
-                            >
-                              Ver
-                            </Link>
+                            <CustomerDetailModal customer={c} />
                           </div>
                         </TableCell>
                       </TableRow>
